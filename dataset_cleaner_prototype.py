@@ -8,14 +8,15 @@ def get_data():
     print("Dataset loaded successfully.")
     return df
 def get_info_about_df(df):
-    global cat_columns,num_columns
+    global cat_columns,num_columns,dataset_size
+    dataset_size = len(df)
     cat_columns = df.select_dtypes(include = object).columns.tolist()
     num_columns = df.select_dtypes(include = int).columns.tolist()
     for column in df.columns:
         if column in cat_columns:
             continue
         elif column in num_columns:
-            if df[column].value_counts() < 10:
+            if df[column].nunique() < 10:
                 del num_columns[num_columns.index(column)]
 def get_info_about_column(df):
     stats = {}
@@ -40,7 +41,7 @@ def get_info_about_column(df):
             info["kurtosis"] = df[column].kurt()
             info["max_zscore"] = ((df[column] - df[column].mean())/df[column].std()).max()
             stats[column] = info
-        return stats
+    return stats
 def Reg_model_evaluation(model):
         from sklearn.metrics import r2_score
         model.fit(X_train,y_train)
@@ -48,11 +49,15 @@ def Reg_model_evaluation(model):
         score = r2_score(y_test,y_pred)
         return score
 def Class_model_evaluation(model):
-    pass
+    from sklearn.metrics import accuracy_score
+    model.fit(X_train,y_train)
+    y_pred = model.predict(X_test)
+    score = accuracy_score(y_test,y_pred)
+    return score
 
-def choosing_model():
+def choosing_model(df):
 
-    models = ["Logistic Regression","Random Forest Regression","Hist Gradient Boosting Regression","Random Forest classifier","Hist Gradient Boosting classifier","autoselect - it will take a while"]
+    models_names = ["Logistic Regression","Random Forest Regression","Hist Gradient Boosting Regression","Random Forest classifier","Hist Gradient Boosting classifier","autoselect - it will take a while"]
     # models = {
     #     "Regression":{
     #         "Logistic Regression": LogisticRegression(),
@@ -68,22 +73,27 @@ def choosing_model():
     for model in models:
         print(f"{models.index(model)+1} ",model)
     choose = int(input("Enter the number corresponding to your choice: "))
-
+    global model_name
     if choose == 1:
         from sklearn.linear_model import LogisticRegression
         model = LogisticRegression()
+        model_name = "Logistic Regression"
     elif choose == 2:
         from sklearn.ensemble import RandomForestRegressor
-        model = RandomForestRegressor
+        model = RandomForestRegressor()
+        model_name = "Random Forest Regression"
     elif choose == 3:
         from sklearn.ensemble import HistGradientBoostingRegressor
-        model = HistGradientBoostingRegressor
+        model = HistGradientBoostingRegressor()
+        model_name = "Hist Gradient Boosting Regression"
     elif choose == 4:
         from sklearn.ensemble import RandomForestClassifier
         model = RandomForestClassifier()
+        model_name = "Random Forest classifier"
     elif choose == 5:
         from sklearn.ensemble import HistGradientBoostingClassifier
         model = HistGradientBoostingClassifier()
+        model_name = "Hist Gradient Boosting classifier"
     else:
         from sklearn.linear_model import LogisticRegression
         from sklearn.ensemble import RandomForestRegressor
@@ -108,6 +118,12 @@ def choosing_model():
                     biggest_score = Reg_model_evaluation(test_model) 
                     model = test_model
             elif test_model in Clas_models:
+                if Class_model_evaluation(test_model) > biggest_score:
+                    biggest_score = Class_model_evaluation(test_model)
+                    model = test_model
+        return model
+
+
 
         
 
@@ -116,16 +132,50 @@ def choosing_model():
 
 
 
-def delete_outliers(df):
-    num_col = df.select_dtypes(include=np.number).columns.tolist()
-    for col in num_col:
-        pass
+def delete_outliers(df,column):
+    if dataset_size >=100000 and info[column]["outliers_ratio"]>= 0.02:
+        lower = df[column].quantile(0.01)
+        upper = df[column].quantile(0.99)
+        df[column] = df[column].clip(lower = lower,upper = upper)
+    elif info[column]["outliers_ratio"] <= 0.01 and info[column]["max_zscore"] >= 5:
+        from scipy.stats import zscore
+        col = df[column]  # column you want to clean
+        z = abs(zscore(col))
+        outliers = z > 5
+        df = df[~outliers] # keep only non-outlier rows
+    elif (info[column]["outliers_ratio"] > 0.01 and info[column]["outliers_ratio"] <= 0.05) or (info[column]["max_zscore"]>=3 and info[column]["max_zscore"]<5) or (np.abs(info[column]["skewness"])>1):
+        col = df[column]
+        Q1 = col.quantile(0.25)
+        Q3 = col.quantile(0.75)
+        IQR = Q3 - Q1
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+        # Cap values instead of deleting
+        df[column] = col.clip(lower=lower, upper=upper)
+    elif info[column]["outliers_ratio"] > 0.05 and np.abs(info[column]["skewness"])>=2:
+        if (df[column]>0).all():
+            df[column] = np.log1p(df[column])
+        else:
+            from sklearn.preprocessing import PowerTransformer
+            pt = PowerTransformer(method='yeo-johnson', standardize=False)
+            df[column] = pt.fit_transform(df[[column]]).flatten()
+    elif np.abs(info[column]["skewness"])<0.5 and (info[column]["kurtosis"]>=2.5 and info[column]["kurtosis"]<=3.5):
+        z = abs(zscore(df[column]))
+        mask = z<=3
+        df = df[mask]
+    else:
+        df[column] = df[column]
+    return df
 
 
 
 def main():
-    global df
+    global info
     df=get_data()
-    choosing_model()
+    get_info_about_df(df)
+    info = get_info_about_column(df)
+    for column in num_columns:
+        df = delete_outliers(df,column)
+    info = get_info_about_column(df)
 
 main()

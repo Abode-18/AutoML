@@ -267,7 +267,7 @@ def creating_model(model,scaler,df):
     y_pred = model.predict(X_test)
     if model_type == "regression":
         from sklearn.metrics import r2_score
-        score = r2_score(y_train,y_pred)
+        score = r2_score(y_test,y_pred)
         print(score)
     elif model_type == "classification":
         from sklearn.metrics import accuracy_score

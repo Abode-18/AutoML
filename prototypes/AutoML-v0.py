@@ -66,19 +66,7 @@ def main_auto():
     pass
 
 def choosing_model():
-
     models_names = ["Logistic Regression","Random Forest Regression","Hist Gradient Boosting Regression","Random Forest classifier","Hist Gradient Boosting classifier","autoselect - it will take a while"]
-    # models = {
-    #     "Regression":{
-    #         "Logistic Regression": LogisticRegression(),
-    #         "Random Forest": RandomForestRegressor(),
-    #         "Hist Gradient Boosting": HistGradientBoostingRegressor()
-    #     },
-    #     "Classification":{
-    #         "Random Forest": RandomForestClassifier(),
-    #         "Hist Gradient Boosting": HistGradientBoostingClassifier()
-    #     }
-    #     }
     print("Choose a model from the following options:")
     for modelName in models_names:
         print(f"{models_names.index(modelName)+1} ",modelName)

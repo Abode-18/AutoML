@@ -25,7 +25,7 @@ The program will create a `.pkl` file inside a folder named `my_model` located i
 import joblib
 
 # Load the model
-model = joblib.load("path/to/my_model/your_model.pkl")
+model = joblib.load("path/to/my_ML_model/model.pkl")
 
 # Make predictions
 predictions = model.predict(new_data)  # new_data should match the format of your CSV

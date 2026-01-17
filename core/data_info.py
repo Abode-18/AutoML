@@ -4,10 +4,10 @@ import pandas as pd
 
 
 
-def dataset_info(df):
+def dataset_info(df:pd.DataFrame,y_column):
     dataset_size = len(df)
-    cat_columns = df.select_dtypes(include = object).columns.tolist()
-    num_columns = df.select_dtypes(include = ['int64','float64']).columns.tolist()
+    cat_columns = df.drop(y_column,axis=1).select_dtypes(include = object).columns.tolist()
+    num_columns = df.drop(y_column,axis=1).select_dtypes(include = ['int64','float64']).columns.tolist()
     for column in df.columns:
         if column in cat_columns:
             continue

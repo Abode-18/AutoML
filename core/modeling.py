@@ -1,5 +1,7 @@
 import os
+from typing import Literal
 
+import pandas as pd
 from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -14,7 +16,7 @@ from sklearn.model_selection import GridSearchCV
 import joblib
 
 from core.utils import split
-from core.preprocessing import choose_encoder
+from core.preprocessing import choose_encoders
 
 def get_model_type(model):
     # Unwrap GridSearchCV or Pipeline
@@ -30,13 +32,10 @@ def get_model_type(model):
     else:
         raise ValueError("Unknown model type")
 
-def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
+def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type: Literal['pipeline', 'python file']):
     X_train,X_test,y_train,y_test = split(df,y_column)
 
     if isinstance(model, LinearRegression):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-    ])
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -45,9 +44,6 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
         
         model = GridSearchCV(estimator=pipe,param_grid={"model__fit_intercept":[True,False],"model__positive":[True,False]})
     elif isinstance(model, LogisticRegression):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-        ])
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -66,9 +62,6 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
 
 
     elif isinstance(model, RandomForestRegressor):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-        ])
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -87,9 +80,7 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
 
 
     elif isinstance(model, RandomForestClassifier):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-        ])
+
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -111,9 +102,6 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
 
 
     elif isinstance(model, HistGradientBoostingRegressor):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-        ])
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -133,9 +121,6 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
 
 
     elif isinstance(model, HistGradientBoostingClassifier):
-        preprocessor = ColumnTransformer([
-        ('cat', encoder, cat_columns)
-        ])
         pipe = Pipeline([
             ("preprocessor",preprocessor),
             ("scaler",scaler),
@@ -152,6 +137,7 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
             "loss": ['log_loss'],
             "max_leaf_nodes": [31, 63, 127]
         }
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
 
     model.fit(X_train,y_train)
     y_pred = model.predict(X_test)
@@ -161,20 +147,46 @@ def creating_model(model,df,cat_columns,y_column,scaler,encoder,path):
     elif get_model_type(model) == "classification":
         from sklearn.metrics import accuracy_score
         score = accuracy_score(y_test,y_pred)
-    folder_path = os.path.join(os.path.dirname(path),"my_ML_model")
-    os.makedirs(folder_path, exist_ok=True)
-    joblib.dump(model,os.path.join(folder_path,"model.pkl"))
-    df.to_csv(os.path.join(folder_path,os.path.basename(path)))
-    return folder_path,score
+    
+    if type == "python file":
+        folder_path = os.path.join(os.path.dirname(path),"my_ML_model")
+        os.makedirs(folder_path, exist_ok=True)
+        joblib.dump(model,os.path.join(folder_path,"model.pkl"))
+        df.to_csv(os.path.join(folder_path,os.path.basename(path)),index=False)
+        with open(os.path.join(folder_path,"ML_model.py"),"w") as f:
+            f.write(
+f"""
+import joblib
+import pandas as pd
+
+# Load the model
+model = joblib.load("{os.path.join(folder_path,"model.pkl").replace("\\", "/")}")
+data = pd.read_csv("{os.path.join(folder_path,os.path.basename(path)).replace("\\", "/")}")
+# Make predictions
+new_data = []
+X_columns = data.drop("{y_column}", axis=1).columns.tolist()
+for column in X_columns:
+    if pd.api.types.is_integer_dtype(data[column]):
+        new_data.append(int(input(f"enter value for {{column}}: ")))
+    elif pd.api.types.is_float_dtype(data[column]):
+        new_data.append(float(input(f"enter value for {{column}}: ")))
+    else:
+        new_data.append(input(f"enter value for {{column}}: "))
+new_data = pd.DataFrame([new_data], columns=X_columns)
+predictions = model.predict(new_data)  # new_data should match the format of your CSV
+
+print("{y_column}: ",predictions)
+""")
+
+        return folder_path,score
+    elif type == "pipeline":
+        return model
+
            
 
 def auto_select_model(df,cat_columns,y_column):
-    encoder = choose_encoder(df,LinearRegression(),cat_columns,y_column)
+    preprocessor = choose_encoders(df,LinearRegression(),cat_columns,y_column)
     X_train,X_test,y_train,y_test = split(df,y_column)
-    preprocessor = ColumnTransformer([
-        ("cat",encoder,cat_columns)
-    ])
-
     pipe = Pipeline([
         ("preprocessor",preprocessor),
         ("model", LinearRegression())

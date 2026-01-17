@@ -1,5 +1,7 @@
 import pandas as pd
 import warnings
+import os
+import subprocess
 
 from AutoML import AutoML
 
@@ -20,3 +22,4 @@ folder_path,score = AutoML(path,y_column,model_name)
 print("model craeted sucessfully 🥳")
 print(f"path: {folder_path}")
 print(f"score: {score}")
+subprocess.run(["python", os.path.join(folder_path,"ML_model.py")], check=True)

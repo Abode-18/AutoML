@@ -10,20 +10,61 @@ from sklearn.preprocessing import (
     RobustScaler,
     PowerTransformer
 )
+from category_encoders import TargetEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from core.utils import split
 from core.evaluation import evaluate
 from core.data_info import dataset_info
 
+class QuantileClipper(BaseEstimator, TransformerMixin):
+    def __init__(self, lower_q=0.01, upper_q=0.99):
+        self.lower_q = lower_q
+        self.upper_q = upper_q
 
-def choose_scaler(df,cat_columns,model,y_column,encoder):
+    def fit(self, X, y=None):
+        self.lower_ = X.quantile(self.lower_q)
+        self.upper_ = X.quantile(self.upper_q)
+        return self
+
+    def transform(self, X):
+        return X.clip(self.lower_, self.upper_, axis=1)
+
+class IQRClipper(BaseEstimator, TransformerMixin):
+    def __init__(self, factor=1.5):
+        self.factor = factor
+
+    def fit(self, X, y=None):
+        Q1 = X.quantile(0.25)
+        Q3 = X.quantile(0.75)
+        self.lower_ = Q1 - self.factor * (Q3 - Q1)
+        self.upper_ = Q3 + self.factor * (Q3 - Q1)
+        return self
+
+    def transform(self, X):
+        return X.clip(self.lower_, self.upper_, axis=1)
+    
+class SkewnessTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.positive_only_ = (X > 0).all().all()
+        if not self.positive_only_:
+            self.pt_ = PowerTransformer(method="yeo-johnson", standardize=False)
+            self.pt_.fit(X)
+        return self
+
+    def transform(self, X):
+        if self.positive_only_:
+            return np.log1p(X)
+        return self.pt_.transform(X)
+
+
+
+
+def choose_scaler(df,model,y_column,preprocessor):
     X_train,X_test,y_train,y_test = split(df,y_column)
-    preprocessor = ColumnTransformer([
-        ("cat",encoder,cat_columns)
-    ])
     pipe = Pipeline([
         ("preprocessor",preprocessor),
         ("scaler",StandardScaler()),
@@ -33,8 +74,8 @@ def choose_scaler(df,cat_columns,model,y_column,encoder):
     mod.fit(X_train,y_train)
     return mod.best_params_["scaler"]
 
-def handling_outliers(model,df,num_columns,cat_columns,stats,y_column,encoder):
-    dataset_size = dataset_info(df)["size"]
+def handling_outliers(model,df,num_columns,stats,y_column,preprocessor):
+    dataset_size = dataset_info(df,y_column)["size"]
     df_outliers = df.copy()
     for column in num_columns:
         if dataset_size >=100000 and stats[column]["outliers_ratio"]>= 0.02:
@@ -68,9 +109,6 @@ def handling_outliers(model,df,num_columns,cat_columns,stats,y_column,encoder):
             df_outliers = df_outliers[mask]
     ####
     X_train,X_test,y_train,y_test = split(df_outliers,y_column)
-    preprocessor = ColumnTransformer([
-        ("cat",encoder,cat_columns)
-    ])
 
     pipe = Pipeline([
         ("preprocessor",preprocessor),
@@ -80,9 +118,6 @@ def handling_outliers(model,df,num_columns,cat_columns,stats,y_column,encoder):
     score = evaluate(pipe,X_train,X_test,y_train,y_test)
 
     X_train,X_test,y_train,y_test = split(df,y_column)
-    preprocessor = ColumnTransformer([
-        ("cat",encoder,cat_columns)
-    ])
     pipe = Pipeline([
         ("preprocessor",preprocessor),
         ("scaler",QuantileTransformer()),
@@ -96,34 +131,88 @@ def handling_outliers(model,df,num_columns,cat_columns,stats,y_column,encoder):
                
     else:
         df = df_outliers
-        scaler = choose_scaler(df,cat_columns,model,y_column,encoder)
+        scaler = choose_scaler(df,model,y_column,preprocessor)
         return df,scaler
                
     
+def OHE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
+    ohe_cols = OHE_columns + [column]
+    X_train, X_test, y_train, y_test = split(df, y_column)
+    transformers = []
+    if ohe_cols:
+        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), ohe_cols))
+    if OE_columns:
+        transformers.append(("OE", OrdinalEncoder(), OE_columns))
+    if TE_columns:
+        for col in TE_columns:
+            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
 
-
-def choose_encoder(df:pd.DataFrame,model,cat_columns,y_column):
-    X_train,X_test,y_train,y_test = split(df,y_column)
-    preprocessor = ColumnTransformer([
-        ('cat', OneHotEncoder(handle_unknown='ignore'), cat_columns)
-    ])
     pipe = Pipeline([
-        ("preprocessor",preprocessor),
-        ("model",model)
-    ]
-    )
-    param_grid = {
-        'preprocessor': [
-            ColumnTransformer([
-                ('cat', OneHotEncoder(handle_unknown='ignore'), cat_columns)
-            ]),
-            ColumnTransformer([
-                ('cat', OrdinalEncoder(), cat_columns)
-            ])
-        ]
-    }
+        ("preprocessor", preprocessor),
+        ("model", model)
+    ])
 
-    grid = GridSearchCV(pipe, param_grid, cv=3)
-    grid.fit(X_train,y_train)
-    encoder = grid.best_estimator_.named_steps['preprocessor'].named_transformers_['cat']
-    return encoder
+    return evaluate(pipe, X_train, X_test, y_train, y_test)
+
+def OE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
+    oe_cols = OE_columns + [column]
+    X_train, X_test, y_train, y_test = split(df, y_column)
+    transformers = []
+    if OHE_columns:
+        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), OHE_columns))
+    if oe_cols:
+        transformers.append(("OE", OrdinalEncoder(), oe_cols))
+    if TE_columns:
+        for col in TE_columns:
+            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
+
+    pipe = Pipeline([
+        ("preprocessor", preprocessor),
+        ("model", model)
+    ])
+
+    return evaluate(pipe, X_train, X_test, y_train, y_test)
+
+def TE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
+    te_cols = TE_columns + [column]
+    X_train, X_test, y_train, y_test = split(df, y_column)
+    transformers = []
+    if OHE_columns:
+        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), OHE_columns))
+    if OE_columns:
+        transformers.append(("OE", OrdinalEncoder(), OE_columns))
+    if te_cols:
+        for col in te_cols:
+            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
+
+    pipe = Pipeline([
+        ("preprocessor", preprocessor),
+        ("model", model)
+    ])
+
+    return evaluate(pipe, X_train, X_test, y_train, y_test)
+
+
+
+def choose_encoders(df:pd.DataFrame,model,cat_columns,y_column):
+    df_test = df.copy()
+    OHE_columns = []
+    OE_columns = []
+    TE_columns = []
+    for column in cat_columns:
+        if OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) and OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > TE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns):
+            OHE_columns.append(column)
+        elif OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) and OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > TE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns):
+            OE_columns.append(column)
+        else:
+            TE_columns.append(column)
+    preprocessor = ColumnTransformer([
+        ('OHE', OneHotEncoder(handle_unknown='ignore'), OHE_columns),
+        ('OE', OrdinalEncoder(), OE_columns),
+        ('TE', TargetEncoder(), TE_columns)
+    ])
+
+    return preprocessor

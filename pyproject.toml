@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "automl"                  
+version = "0.1.0"                     
+description = "Automatic ML pipeline builder"  
+requires-python = ">=3.9"             
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "joblib",
+    "category_encoders",
+]
+
+readme = "package_README.md"            
+authors = [
+    { name = "Abdulrahman Alowidi", email = "abode.bader@outlook.sa"}
+]
+license = { file = "LICENSE" }      
+keywords = ["ML", "AutoML", "Pipeline"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+Homepage = "https://github.com/Abode-18"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["automl*"]
+exclude = ["prototypes*"]

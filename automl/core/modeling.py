@@ -15,8 +15,8 @@ from sklearn.ensemble import (
 from sklearn.model_selection import GridSearchCV
 import joblib
 
-from core.utils import split
-from core.preprocessing import choose_encoders
+from automl.core.utils import split
+from automl.core.preprocessing import preprocessing
 
 def get_model_type(model):
     # Unwrap GridSearchCV or Pipeline
@@ -32,13 +32,12 @@ def get_model_type(model):
     else:
         raise ValueError("Unknown model type")
 
-def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type: Literal['pipeline', 'python file']):
+def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Literal['pipeline', 'python file']):
     X_train,X_test,y_train,y_test = split(df,y_column)
 
     if isinstance(model, LinearRegression):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",LinearRegression())
         ])
         
@@ -46,7 +45,6 @@ def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type:
     elif isinstance(model, LogisticRegression):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",LogisticRegression())
         ])
         
@@ -64,7 +62,6 @@ def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type:
     elif isinstance(model, RandomForestRegressor):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",RandomForestRegressor())
         ])
         param_grid = {
@@ -83,7 +80,6 @@ def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type:
 
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",RandomForestClassifier())
         ])
 
@@ -104,7 +100,6 @@ def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type:
     elif isinstance(model, HistGradientBoostingRegressor):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",HistGradientBoostingRegressor())
         ])
         param_grid = {
@@ -123,7 +118,6 @@ def creating_model(model,df:pd.DataFrame,y_column,scaler,preprocessor,path,type:
     elif isinstance(model, HistGradientBoostingClassifier):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
-            ("scaler",scaler),
             ("model",HistGradientBoostingClassifier())
         ])
 
@@ -184,8 +178,8 @@ print("{y_column}: ",predictions)
 
            
 
-def auto_select_model(df,cat_columns,y_column):
-    preprocessor = choose_encoders(df,LinearRegression(),cat_columns,y_column)
+def auto_select_model(df,y_column):
+    preprocessor = preprocessing(LinearRegression(),df,y_column)
     X_train,X_test,y_train,y_test = split(df,y_column)
     pipe = Pipeline([
         ("preprocessor",preprocessor),
@@ -198,7 +192,7 @@ def auto_select_model(df,cat_columns,y_column):
     return grid.best_params_["model"]
 
 
-def choose_model(name: str, df, cat_columns:list, y_column:list):
+def choose_model(name: str, df,  y_column:list):
     models = {
         "Linear Regression": LinearRegression,
         "Logistic Regression": LogisticRegression,
@@ -209,7 +203,7 @@ def choose_model(name: str, df, cat_columns:list, y_column:list):
         "Auto Select": auto_select_model
     }
     if name == "Auto Select":
-        return models[name](df, cat_columns, y_column)
+        return models[name](df, y_column)
     else:
         return models[name]() 
 

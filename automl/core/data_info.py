@@ -4,7 +4,8 @@ import pandas as pd
 
 
 
-def dataset_info(df:pd.DataFrame,y_column):
+def dataset_info(df:pd.DataFrame,y_column:str) -> dict:
+    """this function returns a dictionary of the size, cat_columns and num_columns"""
     dataset_size = len(df)
     cat_columns = df.drop(y_column,axis=1).select_dtypes(include = object).columns.tolist()
     num_columns = df.drop(y_column,axis=1).select_dtypes(include = ['int64','float64']).columns.tolist()
@@ -20,7 +21,8 @@ def dataset_info(df:pd.DataFrame,y_column):
         "num_columns" : num_columns
     }
 
-def column_statistics(df,cat_columns,num_columns):
+def column_statistics(df:pd.DataFrame,cat_columns:list[str],num_columns:list[str]) ->dict:
+    """this function returns a bunch of stats for every column in the dataframe"""
     stats = {}
     for column in df.columns:
         info = {}

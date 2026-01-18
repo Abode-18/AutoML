@@ -3,7 +3,7 @@ from sklearn.metrics import r2_score,accuracy_score
 
 
 def evaluate(model,X_train,X_test,y_train,y_test):
-    from core.modeling import get_model_type
+    from .modeling import get_model_type
     model.fit(X_train,y_train)
     if get_model_type(model) == "regression":
         

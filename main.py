@@ -3,7 +3,7 @@ import warnings
 import os
 import subprocess
 
-from AutoML import AutoML
+from automl import AutoML
 
 warnings.filterwarnings("ignore")
 
@@ -18,7 +18,7 @@ for model_name in models_names:
     print(f"{models_names.index(model_name) + 1}- ",model_name)
 model_name = models_names[int(input("choose a model by writing the number crossponding with the model you want: "))-1]
 
-folder_path,score = AutoML(path,y_column,model_name)
+folder_path,score = AutoML(path,y_column,model_name,type="python file")
 print("model craeted sucessfully 🥳")
 print(f"path: {folder_path}")
 print(f"score: {score}")

@@ -6,3 +6,4 @@ automl/automl.egg-info
 automl.egg-info/
 dist/
 package_README.md
+mlaunch.egg-info/

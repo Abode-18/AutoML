@@ -17,9 +17,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from automl.core.utils import split
-from automl.core.evaluation import evaluate
-from automl.core.data_info import dataset_info,column_statistics
+from mlaunch.core.utils import split
+from mlaunch.core.evaluation import evaluate
+from mlaunch.core.data_info import dataset_info,column_statistics
 
 class QuantileClipper(BaseEstimator, TransformerMixin):
     def __init__(self, lower_q=0.01, upper_q=0.99):

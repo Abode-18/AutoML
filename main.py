@@ -3,7 +3,7 @@ import warnings
 import os
 import subprocess
 
-from automl import AutoML
+from mlaunch import AutoML
 
 warnings.filterwarnings("ignore")
 

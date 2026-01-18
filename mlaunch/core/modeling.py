@@ -15,8 +15,8 @@ from sklearn.ensemble import (
 from sklearn.model_selection import GridSearchCV
 import joblib
 
-from automl.core.utils import split
-from automl.core.preprocessing import preprocessing
+from mlaunch.core.utils import split
+from mlaunch.core.preprocessing import preprocessing
 
 def get_model_type(model):
     # Unwrap GridSearchCV or Pipeline

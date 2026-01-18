@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "automl"                  
-version = "0.1.0"                     
+name = "mlaunch"                  
+version = "0.1.1"                     
 description = "Automatic ML pipeline builder"  
 requires-python = ">=3.9"             
 dependencies = [
@@ -32,5 +32,5 @@ Homepage = "https://github.com/Abode-18"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["automl*"]
+include = ["mlaunch*"]
 exclude = ["prototypes*"]

@@ -1,8 +1,8 @@
 from typing import Literal
 
-from automl.core.data_io import load_dataset
-from automl.core.preprocessing import preprocessing
-from automl.core.modeling import creating_model,choose_model
+from mlaunch.core.data_io import load_dataset
+from mlaunch.core.preprocessing import preprocessing
+from mlaunch.core.modeling import creating_model,choose_model
 
 def AutoML(path:str,y_column:str,model_name:Literal["Linear Regression","Logistic Regression","Random Forest Regression","Hist Gradient Boosting Regression","Random Forest classifier","Hist Gradient Boosting classifier","Auto Select"],type:Literal["python file","pipeline"] = "pipeline"):
 

@@ -12,7 +12,7 @@ AutoML Builder is a Python project that automatically generates a complete machi
 
 ## Installation
 ```bash
-pip install automl
+pip install mlaunch
 ```
 ## How to use
 1. create a python file and paste this code:
@@ -22,7 +22,7 @@ import warnings
 import os
 import subprocess
 
-from automl import AutoML
+from mlaunch import AutoML
 
 warnings.filterwarnings("ignore")
 
@@ -48,7 +48,7 @@ subprocess.run(["python", os.path.join(folder_path,"ML_model.py")], check=True)
 ### AutoML
 this function will preprocess the data and create the model for you
 ```python
-from automl import AutoML
+from mlaunch import AutoML
 model = AutoML(path,y_column,model_name,type = "pipeline")
 ```
 #### parameteres
@@ -70,7 +70,7 @@ model = AutoML(path,y_column,model_name,type = "pipeline")
 ### preprocessing
 this function will handle the outliers and encode your data and output it as a ColumnTransformer
 ```python 
-from automl import preprocessing
+from mlaunch import preprocessing
 preprocessor = preprocessing(model,df,y_column)
 model = Pipeline([
     ("preprocessor",preprocessor)
@@ -84,7 +84,7 @@ model = Pipeline([
 ### dataset_info
 this function returns a dictionary of the size, cat_columns and num_columns
 ```python
-from automl import dataset_info
+from mlaunch import dataset_info
 info = dataset_info(df,y_column)
 ```
 #### parameteres
@@ -94,7 +94,7 @@ info = dataset_info(df,y_column)
 ### column_statistics
 this function returns a bunch of stats for every column in the dataframe
 ```python
-from automl import column_statistics
+from mlaunch import column_statistics
 stats = column_statistics(df,cat_columns,num_columns)
 ```
 #### parameteres

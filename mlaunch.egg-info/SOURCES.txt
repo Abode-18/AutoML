@@ -11,6 +11,7 @@ mlaunch.egg-info/dependency_links.txt
 mlaunch.egg-info/requires.txt
 mlaunch.egg-info/top_level.txt
 mlaunch/core/__init__.py
+mlaunch/core/data_cleaning.py
 mlaunch/core/data_info.py
 mlaunch/core/data_io.py
 mlaunch/core/evaluation.py

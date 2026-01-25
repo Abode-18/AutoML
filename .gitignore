@@ -5,3 +5,4 @@ structure.txt
 dist/
 package_README.md
 mlaunch.egg-info/
+tests\

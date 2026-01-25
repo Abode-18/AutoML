@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: mlaunch
-Version: 0.1.1
+Version: 0.2.0
 Summary: Automatic ML pipeline builder
 Author-email: Abdulrahman Alowidi <abode.bader@outlook.sa>
 License: MIT License
@@ -40,16 +40,16 @@ Requires-Dist: joblib
 Requires-Dist: category_encoders
 Dynamic: license-file
 
-# automl
+# mlaunch
 
 ## About the Project
-AutoML Builder is a Python project that automatically generates a complete machine learning model from a CSV file. It handles data preprocessing, encoding, model selection, and evaluation.
+mlaunch is a Python package that automatically generates a complete machine learning model from a CSV file. It handles data preprocessing, encoding, model selection, and evaluation.
 
 ## Functions
 ### AutoML
 this function will preprocess the data and create the model for you
 ```python
-from automl import AutoML
+from mlaunch import AutoML
 model = AutoML(path,y_column,model_name,type = "pipeline")
 ```
 #### parameteres
@@ -71,7 +71,7 @@ model = AutoML(path,y_column,model_name,type = "pipeline")
 ### preprocessing
 this function will handle the outliers and encode your data and output it as a ColumnTransformer
 ```python 
-from automl import preprocessing
+from mlaunch import preprocessing
 preprocessor = preprocessing(model,df,y_column)
 model = Pipeline([
     ("preprocessor",preprocessor)
@@ -85,7 +85,7 @@ model = Pipeline([
 ### dataset_info
 this function returns a dictionary of the size, cat_columns and num_columns
 ```python
-from automl import dataset_info
+from mlaunch import dataset_info
 info = dataset_info(df,y_column)
 ```
 #### parameteres
@@ -96,9 +96,8 @@ info = dataset_info(df,y_column)
 this function returns a bunch of stats for every column in the dataframe
 ```python
 from automl import column_statistics
-stats = column_statistics(df,cat_columns,num_columns)
+stats = column_statistics(df,y_column)
 ```
 #### parameteres
 - df: put the dataframe here
-- cat_columns: the catagorical columns in your dataframe, you can get them easily by using `dataset_info(df,y_column)["cat_columns]`
-- num_columns: the numerical columns in your dataframe, you can get them easily by using `dataset_info(df,y_column)["num_columns]`
+- y_column: the target column in your dataset

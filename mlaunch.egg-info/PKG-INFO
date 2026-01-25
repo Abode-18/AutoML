@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: mlaunch
-Version: 0.2.0
+Version: 0.2.1
 Summary: Automatic ML pipeline builder
 Author-email: Abdulrahman Alowidi <abode.bader@outlook.sa>
 License: MIT License
@@ -30,7 +30,7 @@ Keywords: ML,AutoML,Pipeline
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.9
+Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: pandas

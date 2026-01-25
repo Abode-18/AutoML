@@ -21,6 +21,13 @@ from mlaunch.core.utils import split
 from mlaunch.core.evaluation import evaluate
 from mlaunch.core.data_info import dataset_info,column_statistics
 
+class passthrogh(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+    def fit(self, X, y=None):
+        return self
+    def transform(self,X):
+        return X
 class QuantileClipper(BaseEstimator, TransformerMixin):
     def __init__(self, lower_q=0.01, upper_q=0.99):
         self.lower_q = lower_q
@@ -81,60 +88,23 @@ def choose_scaler(df,model,column,y_column):
 
 def handling_outliers(df,model,num_columns,stats,y_column,transformers:list):
     dataset_size = dataset_info(df,y_column)["size"]
-    # df_outliers = df.copy()
     QuantileClipper_columns = []
     IQRClipper_columns = []
     SkewnessTransformer_columns = []
     for column in num_columns:
         if dataset_size >=100000 and stats[column]["outliers_ratio"]>= 0.02:
             QuantileClipper_columns.append(column)
-        # elif stats[column]["outliers_ratio"] <= 0.01 and stats[column]["max_zscore"] >= 5:
-        #     from scipy.stats import zscore
-        #     col = df_outliers[column]  # column you want to clean
-        #     z = abs(zscore(col))
-        #     outliers = z > 5
-        #     df_outliers = df_outliers[~outliers] # keep only non-outlier rows
         elif (stats[column]["outliers_ratio"] > 0.01 and stats[column]["outliers_ratio"] <= 0.05) or (stats[column]["max_zscore"]>=3 and stats[column]["max_zscore"]<5) or (np.abs(stats[column]["skewness"])>1):
             IQRClipper_columns.append(column)
         elif stats[column]["outliers_ratio"] > 0.05 and np.abs(stats[column]["skewness"])>=2:
             SkewnessTransformer_columns.append(column)
-        # elif np.abs(stats[column]["skewness"])<0.5 and (stats[column]["kurtosis"]>=2.5 and stats[column]["kurtosis"]<=3.5):
-        #     z = abs(zscore(df_outliers[column]))
-        #     mask = z<=3
-        #     df_outliers = df_outliers[mask]
-        # else:
-        #     transformers.append((f"{column} scaler",choose_scaler(df,model,column,y_column),column))
-        transformers.append(("QuantileClipper",QuantileClipper(),QuantileClipper_columns))
-        transformers.append(("IQRClipper",IQRClipper(),IQRClipper_columns))
-        transformers.append(("SkewnessTransformer",SkewnessTransformer(),SkewnessTransformer_columns))
-        return transformers
-    ####
-    # X_train,X_test,y_train,y_test = split(df_outliers,y_column)
-
-    # pipe = Pipeline([
-    #     ("preprocessor",preprocessor),
-    #     ("model", model)
-    # ])
-
-    # score = evaluate(pipe,X_train,X_test,y_train,y_test)
-
-    # X_train,X_test,y_train,y_test = split(df,y_column)
-    # pipe = Pipeline([
-    #     ("preprocessor",preprocessor),
-    #     ("scaler",QuantileTransformer()),
-    #     ("model",model)
-    # ])
-    # mod = GridSearchCV(estimator=pipe,param_grid={"scaler":[QuantileTransformer(),RobustScaler()]})
-    # mod.fit(X_train,y_train)
-    # grid_score = mod.best_score_
-    # if grid_score > score:
-    #     return df,scaler
-               
-    # else:
-    #     df = df_outliers
-    #     scaler = choose_scaler(df,model,y_column,preprocessor)
-    #     return df,scaler
-               
+        if QuantileClipper_columns:
+            transformers.append(("QuantileClipper",QuantileClipper(),QuantileClipper_columns))
+        if IQRClipper_columns:
+            transformers.append(("IQRClipper",IQRClipper(),IQRClipper_columns))
+        if SkewnessTransformer_columns:
+            transformers.append(("SkewnessTransformer",SkewnessTransformer(),SkewnessTransformer_columns))
+        return transformers           
     
 def OHE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
     ohe_cols = OHE_columns + [column]
@@ -198,9 +168,8 @@ def TE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_col
 
 
 
-def choose_encoders(df:pd.DataFrame,model,cat_columns,y_column):
+def choose_encoders(df:pd.DataFrame,model,cat_columns,y_column,transformers:list):
     df_test = df.copy()
-    transformers = []
     OHE_columns = []
     OE_columns = []
     TE_columns = []
@@ -219,10 +188,24 @@ def choose_encoders(df:pd.DataFrame,model,cat_columns,y_column):
     return transformers
 
 def preprocessing(model,df:pd.DataFrame,y_column):
+    """
+    this function will handle the outliers and encode your data and output it as a ColumnTransformer to use with a pipeline
+    
+    :param model: your model
+    :param df: your DataFrame
+    :type df: pd.DataFrame
+    :param y_column: the target column in your dataset
+    """
     cat_columns = dataset_info(df,y_column)["cat_columns"]
     num_columns = dataset_info(df,y_column)["num_columns"]
-    stats = column_statistics(df,cat_columns,num_columns)
-    transformers = choose_encoders(df,model,cat_columns,y_column)
-    transformers = handling_outliers(df,model,num_columns,stats,y_column,transformers)
-    preprocessor = ColumnTransformer(transformers=transformers)
-    return preprocessor
+    stats = column_statistics(df,y_column)
+    transformers = []
+    if cat_columns:
+        transformers = choose_encoders(df,model,cat_columns,y_column,transformers)
+    if num_columns:
+        transformers = handling_outliers(df,model,num_columns,stats,y_column,transformers)
+    if transformers:
+        preprocessor = ColumnTransformer(transformers=transformers)
+        return preprocessor
+    else:
+        return ColumnTransformer(transformers=[("all_columns",passthrogh(),df.drop(y_column,axis=1).columns.to_list())])

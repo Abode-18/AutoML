@@ -5,13 +5,22 @@ import pandas as pd
 
 
 def dataset_info(df:pd.DataFrame,y_column:str) -> dict:
-    """this function returns a dictionary of the size, cat_columns and num_columns"""
+    """
+    this function returns a dictionary of the size, cat_columns and num_columns
+    
+    :param df: your DataFrame
+    :type df: pd.DataFrame
+    :param y_column: the target column in your dataset
+    :type y_column: str
+    :return: `{"size":1000,"cat_columns":[],"num_columns":[]}`
+    :rtype: dict
+    """
     dataset_size = len(df)
     cat_columns = df.drop(y_column,axis=1).select_dtypes(include = object).columns.tolist()
     num_columns = df.drop(y_column,axis=1).select_dtypes(include = ['int64','float64']).columns.tolist()
     for column in df.columns:
         if column in cat_columns:
-            continue
+                continue
         elif column in num_columns:
             if df[column].nunique() < 10:
                 del num_columns[num_columns.index(column)]
@@ -21,8 +30,20 @@ def dataset_info(df:pd.DataFrame,y_column:str) -> dict:
         "num_columns" : num_columns
     }
 
-def column_statistics(df:pd.DataFrame,cat_columns:list[str],num_columns:list[str]) ->dict:
-    """this function returns a bunch of stats for every column in the dataframe"""
+def column_statistics(df:pd.DataFrame,y_column:str) ->dict[str, dict[str, float]]:
+    """
+    This function returns a set of statistics for each column in the DataFrame.
+
+    :param df:  your DataFrame
+    :type df: pd.DataFrame
+    :param y_column: the target column in your dataset
+    :type y_column: str
+    :return: `{"column_name": {"missing_ratio": float, ...}}`
+    :rtype: dict[str, dict[str, float]]
+    """
+
+    cat_columns = dataset_info(df,y_column)["cat_columns"]
+    num_columns = dataset_info(df,y_column)["num_columns"]
     stats = {}
     for column in df.columns:
         info = {}

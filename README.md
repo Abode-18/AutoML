@@ -1,14 +1,13 @@
-# AutoML
+# mlaunch
 
 ## About the Project
-AutoML Builder is a Python project that automatically generates a complete machine learning model from a CSV file. It handles data preprocessing, encoding, model selection, and evaluation with minimal user input.
+mlaunch is a Python package that automatically generates a complete machine learning model from a CSV file. It handles data preprocessing, encoding, model selection, and evaluation with minimal user input.
 
 ## Features
 - Automatic detection of feature types (numerical, categorical, ordinal)
 - Handles missing values and outliers
 - Selects and trains the best ML model
-- Provides evaluation metrics for regression and classification
-- Easy integration with custom pipelines
+- Easy integration with pipelines
 
 ## Installation
 ```bash
@@ -80,7 +79,15 @@ model = Pipeline([
 - model: put your model here
 - df: put the dataframe here
 - y_column: the target column in your dataset
-
+### data_cleaning
+this function will handle NaN and remove duplicates
+```python
+from mlaunch import data_cleaning
+df = data_cleaning(df,y_column)
+```
+#### parameteres
+- df: put the dataframe here
+- y_column: the target column in your dataset
 ### dataset_info
 this function returns a dictionary of the size, cat_columns and num_columns
 ```python
@@ -94,10 +101,9 @@ info = dataset_info(df,y_column)
 ### column_statistics
 this function returns a bunch of stats for every column in the dataframe
 ```python
-from mlaunch import column_statistics
-stats = column_statistics(df,cat_columns,num_columns)
+from automl import column_statistics
+stats = column_statistics(df,y_column)
 ```
 #### parameteres
 - df: put the dataframe here
-- cat_columns: the catagorical columns in your dataframe, you can get them easily by using `dataset_info(df,y_column)["cat_columns]`
-- num_columns: the numerical columns in your dataframe, you can get them easily by using `dataset_info(df,y_column)["num_columns]`
+- y_column: the target column in your dataset

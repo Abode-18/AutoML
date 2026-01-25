@@ -41,7 +41,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             ("model",LinearRegression())
         ])
         
-        model = GridSearchCV(estimator=pipe,param_grid={"model__fit_intercept":[True,False],"model__positive":[True,False]})
+        model = GridSearchCV(estimator=pipe,param_grid={"model__fit_intercept":[True,False],"model__positive":[True,False]},n_jobs=-1)
     elif isinstance(model, LogisticRegression):
         pipe = Pipeline([
             ("preprocessor",preprocessor),
@@ -56,7 +56,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             "model__class_weight": [None, 'balanced']
         }
 
-        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid,n_jobs=-1)
 
 
     elif isinstance(model, RandomForestRegressor):
@@ -73,7 +73,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             "model__bootstrap": [True, False]
         }
 
-        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid,n_jobs=-1)
 
 
     elif isinstance(model, RandomForestClassifier):
@@ -94,7 +94,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             "model__criterion": ['gini', 'entropy', 'log_loss']
         }
 
-        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid,n_jobs=-1)
 
 
     elif isinstance(model, HistGradientBoostingRegressor):
@@ -112,7 +112,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             "model__loss": ['squared_error', 'absolute_error']
         }
 
-        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid,n_jobs=-1)
 
 
     elif isinstance(model, HistGradientBoostingClassifier):
@@ -131,7 +131,7 @@ def creating_model(model,df:pd.DataFrame,y_column,preprocessor,path,type: Litera
             "loss": ['log_loss'],
             "max_leaf_nodes": [31, 63, 127]
         }
-        model = GridSearchCV(estimator=pipe,param_grid=param_grid)
+        model = GridSearchCV(estimator=pipe,param_grid=param_grid,n_jobs=-1)
 
     model.fit(X_train,y_train)
     y_pred = model.predict(X_test)
@@ -179,13 +179,13 @@ print("{y_column}: ",predictions)
            
 
 def auto_select_model(df,y_column):
+
     preprocessor = preprocessing(LinearRegression(),df,y_column)
     X_train,X_test,y_train,y_test = split(df,y_column)
     pipe = Pipeline([
         ("preprocessor",preprocessor),
         ("model", LinearRegression())
     ])
-
     grid = GridSearchCV(estimator=pipe,param_grid={"model":[LinearRegression(),LogisticRegression(),RandomForestRegressor(),HistGradientBoostingRegressor(),RandomForestClassifier(),HistGradientBoostingClassifier()]})
 
     grid.fit(X_train,y_train)

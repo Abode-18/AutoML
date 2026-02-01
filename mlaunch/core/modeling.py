@@ -19,11 +19,10 @@ from mlaunch.core.utils import split
 from mlaunch.core.preprocessing import preprocessing
 
 def get_model_type(model):
-    # Unwrap GridSearchCV or Pipeline
     if isinstance(model, GridSearchCV):
         model = model.best_estimator_
     if isinstance(model, Pipeline):
-        model = model.steps[-1][1]  # last step is the estimator
+        model = model.steps[-1][1] 
 
     if isinstance(model, RegressorMixin):
         return "regression"
@@ -178,8 +177,7 @@ print("{y_column}: ",predictions)
 
            
 
-def auto_select_model(df,y_column):
-
+def auto_select_model(df:pd.DataFrame,y_column):
     preprocessor = preprocessing(LinearRegression(),df,y_column)
     X_train,X_test,y_train,y_test = split(df,y_column)
     pipe = Pipeline([

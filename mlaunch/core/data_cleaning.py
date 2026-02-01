@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from mlaunch.core.data_info import dataset_info,column_statistics
 
@@ -47,6 +48,8 @@ def id_columns_deleting(df:pd.DataFrame,y_column) -> pd.DataFrame:
     for column in dataset_info(df,y_column)["cat_columns"]:
         if df[column].nunique() /dataset_info(df,y_column)["size"] >= 0.90:
             df = df.drop(column,axis=1)
+        elif column in dataset_info(df,y_column)["cat_columns"] and df[column].nunique() /dataset_info(df,y_column)["size"] >= 0.1:
+            df = df.drop(column,axis = 1)
     return df
 
 def feature_deleting(df:pd.DataFrame,y_column:str) -> pd.DataFrame:
@@ -59,6 +62,14 @@ def feature_deleting(df:pd.DataFrame,y_column:str) -> pd.DataFrame:
 def remove_duplicates(df:pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates()
     return df
+
+def encoding_y(df:pd.DataFrame,y_column:str) -> pd.DataFrame:
+    if y_column in df.select_dtypes(include=object).columns.tolist():
+        le = LabelEncoder()
+        df[y_column] = le.fit_transform(df[y_column])
+    return df
+
+
 def data_cleaning(df:pd.DataFrame,y_column:str) -> pd.DataFrame:
     """
     this function will handle NaN and remove duplicates
@@ -72,4 +83,5 @@ def data_cleaning(df:pd.DataFrame,y_column:str) -> pd.DataFrame:
     """
     df = feature_deleting(df,y_column)
     df = remove_duplicates(df)
+    df = encoding_y(df,y_column)
     return df

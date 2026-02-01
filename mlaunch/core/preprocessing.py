@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.preprocessing import (
     OneHotEncoder,
     OrdinalEncoder,
+    LabelEncoder,
     StandardScaler,
     MinMaxScaler,
     QuantileTransformer,
@@ -106,83 +107,55 @@ def handling_outliers(df,model,num_columns,stats,y_column,transformers:list):
             transformers.append(("SkewnessTransformer",SkewnessTransformer(),SkewnessTransformer_columns))
         return transformers           
     
-def OHE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
-    ohe_cols = OHE_columns + [column]
+def OHE_score(model,df:pd.DataFrame,column,y_column,transformers:list):
+    test_column = [column]
     X_train, X_test, y_train, y_test = split(df, y_column)
-    transformers = []
-    if ohe_cols:
-        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), ohe_cols))
-    if OE_columns:
-        transformers.append(("OE", OrdinalEncoder(), OE_columns))
-    if TE_columns:
-        for col in TE_columns:
-            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
-    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
-
+    transformers.append(("test",OneHotEncoder(handle_unknown="ignore",sparse_output=False),test_column))
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore",sparse_output=False))
     pipe = Pipeline([
         ("preprocessor", preprocessor),
         ("model", model)
     ])
-
+    del transformers[-1]
     return evaluate(pipe, X_train, X_test, y_train, y_test)
 
-def OE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
-    oe_cols = OE_columns + [column]
+def OE_score(model,df:pd.DataFrame,column,y_column,transformers:list):
+    test_column = [column]
     X_train, X_test, y_train, y_test = split(df, y_column)
-    transformers = []
-    if OHE_columns:
-        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), OHE_columns))
-    if oe_cols:
-        transformers.append(("OE", OrdinalEncoder(), oe_cols))
-    if TE_columns:
-        for col in TE_columns:
-            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
-    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
+    transformers.append(("test",OrdinalEncoder(),test_column))
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore",sparse_output=False))
 
     pipe = Pipeline([
         ("preprocessor", preprocessor),
         ("model", model)
     ])
-
+    del transformers[-1]
     return evaluate(pipe, X_train, X_test, y_train, y_test)
 
-def TE_score(model,df:pd.DataFrame,column,y_column,OHE_columns,OE_columns,TE_columns):
-    te_cols = TE_columns + [column]
+def TE_score(model,df:pd.DataFrame,column,y_column,transformers:list):
+    test_column = [column]
     X_train, X_test, y_train, y_test = split(df, y_column)
-    transformers = []
-    if OHE_columns:
-        transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), OHE_columns))
-    if OE_columns:
-        transformers.append(("OE", OrdinalEncoder(), OE_columns))
-    if te_cols:
-        for col in te_cols:
-            transformers.append(("TE_" + col, TargetEncoder(), [col])) 
-    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore"))
+    transformers.append(("test",TargetEncoder(),test_column))
+    preprocessor = ColumnTransformer(transformers, remainder=OneHotEncoder(handle_unknown="ignore",sparse_output=False))
 
     pipe = Pipeline([
         ("preprocessor", preprocessor),
         ("model", model)
     ])
-
+    del transformers[-1]
     return evaluate(pipe, X_train, X_test, y_train, y_test)
 
 
 
 def choose_encoders(df:pd.DataFrame,model,cat_columns,y_column,transformers:list):
     df_test = df.copy()
-    OHE_columns = []
-    OE_columns = []
-    TE_columns = []
     for column in cat_columns:
-        if OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) and OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > TE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns):
-            OHE_columns.append(column)
-        elif OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > OHE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) and OE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns) > TE_score(model,df_test,column,y_column,OHE_columns,OE_columns,TE_columns):
-            OE_columns.append(column)
+        if OHE_score(model,df_test,column,y_column,transformers) > OE_score(model,df_test,column,y_column,transformers) and OHE_score(model,df_test,column,y_column,transformers) > TE_score(model,df_test,column,y_column,transformers):
+            transformers.append((f"{column}", OneHotEncoder(handle_unknown="ignore",sparse_output=False), [column]))
+        elif OE_score(model,df_test,column,y_column,transformers) > OHE_score(model,df_test,column,y_column,transformers) and OE_score(model,df_test,column,y_column,transformers) > TE_score(model,df_test,column,y_column,transformers):
+            transformers.append((f"{column}", OrdinalEncoder(), [column]))
         else:
-            TE_columns.append(column)
-    transformers.append(("OHE", OneHotEncoder(handle_unknown="ignore"), OHE_columns))
-    transformers.append(("OE", OrdinalEncoder(), OE_columns))
-    transformers.append(("TE", TargetEncoder(), TE_columns))
+            transformers.append((f"TE_{column}", TargetEncoder(), [column]))
 
 
     return transformers

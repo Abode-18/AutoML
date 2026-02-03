@@ -45,7 +45,7 @@ def handle_missing(df:pd.DataFrame,y_column):
     return df
 
 def id_columns_deleting(df:pd.DataFrame,y_column) -> pd.DataFrame:
-    for column in dataset_info(df,y_column)["cat_columns"]:
+    for column in dataset_info(df,y_column)["num_columns"]:
         if df[column].nunique() /dataset_info(df,y_column)["size"] >= 0.90:
             df = df.drop(column,axis=1)
         elif column in dataset_info(df,y_column)["cat_columns"] and df[column].nunique() /dataset_info(df,y_column)["size"] >= 0.1:
